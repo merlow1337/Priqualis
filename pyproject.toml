@@ -1,0 +1,122 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "priqualis"
+version = "0.1.0"
+description = "Pre-submission compliance validator for healthcare claims"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Jakub Zeglinski" },
+    { name = "Alexander Fichtenberg" },
+]
+keywords = [
+    "healthcare",
+    "validation",
+    "nfz",
+    "claims",
+    "compliance",
+    "bm25",
+    "vector-search",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Healthcare Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # Core
+    "pydantic>=2.5",
+    "pydantic-settings>=2.1",
+    "pyyaml>=6.0",
+    # Data processing
+    "polars>=0.20",
+    "duckdb>=0.9",
+    "pyarrow>=14.0",
+    # Search
+    "whoosh>=2.7",
+    "qdrant-client>=1.7",
+    # Embeddings
+    "sentence-transformers>=2.2",
+    # API
+    "fastapi>=0.109",
+    "uvicorn[standard]>=0.27",
+    # UI
+    "streamlit>=1.30",
+    # Utils
+    "httpx>=0.26",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.1",
+    "mypy>=1.8",
+    "pre-commit>=3.6",
+]
+docs = [
+    "mkdocs>=1.5",
+    "mkdocs-material>=9.5",
+]
+
+[project.scripts]
+priqualis = "priqualis.core.cli:main"
+
+[project.urls]
+Repository = "https://github.com/SirSail/Priqualis"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/priqualis"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+]
+ignore = ["E501"]  # line too long (handled by formatter)
+
+[tool.ruff.lint.isort]
+known-first-party = ["priqualis"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra -q --cov=src/priqualis --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["src/priqualis"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
