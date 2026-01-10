@@ -1,0 +1,88 @@
+# Priqualis Base Rules Configuration
+# This file contains high-impact validation rules for NFZ claim packages.
+#
+# Rule format:
+#   rule_id: R001-R999 (unique identifier)
+#   name: Human-readable name
+#   description: What this rule checks
+#   severity: error | warning
+#   condition: Python boolean expression (True = pass, False = fail)
+#   on_violation: Action to take when violated
+#     message: Error message shown to user
+#     autofix_hint: add_if_absent | set | remove | replace
+#     suggested_value: Optional value for autofix
+#   jgp_groups: Optional list of JGP codes this applies to (null = all)
+#   enabled: true | false
+
+rules:
+  # ==========================================================================
+  # R001: Required Main Diagnosis
+  # ==========================================================================
+  - rule_id: R001
+    name: Required Main Diagnosis
+    description: Main ICD-10 diagnosis code must be present and valid
+    severity: error
+    condition: icd10_main is not None and len(str(icd10_main)) >= 3
+    on_violation:
+      message: "Missing or invalid main diagnosis (ICD-10). Every hospitalization requires a primary diagnosis code."
+      autofix_hint: add_if_absent
+    enabled: true
+    version: "1.0"
+
+  # ==========================================================================
+  # R002: Valid Date Range
+  # ==========================================================================
+  - rule_id: R002
+    name: Valid Date Range
+    description: Discharge date must be on or after admission date
+    severity: error
+    condition: discharge_date >= admission_date
+    on_violation:
+      message: "Invalid date range: discharge date is before admission date. Check data entry."
+      autofix_hint: set
+      suggested_value: "discharge_date = admission_date"
+    enabled: true
+    version: "1.0"
+
+  # ==========================================================================
+  # R003: JGP Code Required
+  # ==========================================================================
+  - rule_id: R003
+    name: JGP Code Required
+    description: JGP (DRG) classification code must be assigned
+    severity: error
+    condition: jgp_code is not None and len(str(jgp_code)) >= 2
+    on_violation:
+      message: "Missing JGP code. Every hospitalization must be classified into a diagnosis-related group."
+      autofix_hint: add_if_absent
+    enabled: true
+    version: "1.0"
+
+  # ==========================================================================
+  # R004: Procedures Required for JGP
+  # ==========================================================================
+  - rule_id: R004
+    name: Procedures Required
+    description: At least one procedure must be recorded for proper JGP classification
+    severity: warning
+    condition: procedures is not None and len(procedures) > 0
+    on_violation:
+      message: "No procedures recorded. Most JGP groups require at least one procedure code."
+      autofix_hint: add_if_absent
+    enabled: true
+    version: "1.0"
+
+  # ==========================================================================
+  # R005: Valid Admission Mode
+  # ==========================================================================
+  - rule_id: R005
+    name: Valid Admission Mode
+    description: Admission mode must be one of emergency, planned, or transfer
+    severity: error
+    condition: admission_mode in ['emergency', 'planned', 'transfer']
+    on_violation:
+      message: "Invalid admission mode. Must be 'emergency', 'planned', or 'transfer'."
+      autofix_hint: set
+      suggested_value: "planned"
+    enabled: true
+    version: "1.0"

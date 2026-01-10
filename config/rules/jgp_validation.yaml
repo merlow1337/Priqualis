@@ -1,0 +1,31 @@
+# Priqualis JGP-Specific Validation Rules
+# These rules target specific JGP (DRG) groups with stricter requirements.
+
+rules:
+  # ==========================================================================
+  # R006: Department Code Required
+  # ==========================================================================
+  - rule_id: R006
+    name: Department Code Required
+    description: NFZ department code must be assigned for billing
+    severity: error
+    condition: department_code is not None and len(str(department_code)) >= 4
+    on_violation:
+      message: "Missing department code. Required for NFZ settlement."
+      autofix_hint: add_if_absent
+    enabled: true
+    version: "1.0"
+
+  # ==========================================================================
+  # R007: Tariff Value Positive
+  # ==========================================================================
+  - rule_id: R007
+    name: Positive Tariff Value
+    description: Tariff value must be greater than zero for reimbursement
+    severity: warning
+    condition: tariff_value is not None and tariff_value > 0
+    on_violation:
+      message: "Tariff value is zero or missing. No reimbursement will be issued."
+      autofix_hint: null
+    enabled: true
+    version: "1.0"
