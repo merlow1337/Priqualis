@@ -121,273 +121,294 @@ if page == "🏠 Dashboard":
 elif page == "📋 Triage":
     st.title("📋 Claim Triage")
 
+    # Import and initialize RuleEngine once for the page
+    from priqualis.rules import RuleEngine
+    engine = RuleEngine(Path("config/rules"))
+
+    # Initialize additional session state
+    if "uploaded_filename" not in st.session_state:
+        st.session_state.uploaded_filename = None
+    if "generated_patches" not in st.session_state:
+        st.session_state.generated_patches = None
+
     # File upload
     uploaded_file = st.file_uploader(
         "Upload claims batch",
         type=["csv", "parquet"],
         help="Upload CSV or Parquet file with claim records",
+        key="file_uploader"
     )
 
-    if uploaded_file:
-        st.success(f"Uploaded: {uploaded_file.name}")
+    # Process upload ONLY if it's a NEW file (different filename)
+    if uploaded_file is not None:
+        # Check if this is a new file by comparing filename
+        if st.session_state.uploaded_filename != uploaded_file.name:
+            import polars as pl
+            from priqualis.etl.processor import ClaimImporter
+            
+            importer = ClaimImporter()
+            
+            # Use temp file to read with polars
+            from tempfile import NamedTemporaryFile
+            suffix = ".csv" if uploaded_file.name.endswith(".csv") else ".parquet"
+            with NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                tmp.write(uploaded_file.getvalue())
+                df = importer.load(Path(tmp.name))
+                
+            # Store in session state
+            st.session_state.uploaded_df = df
+            st.session_state.uploaded_filename = uploaded_file.name
+            st.session_state.validation_result = None  # Reset only for NEW file
+            st.session_state.generated_patches = None  # Reset patches too
+            st.success(f"✅ Loaded: {uploaded_file.name} ({df.shape[0]} claims)")
 
-        # Load claims (cache in session state)
-        import polars as pl
-
-        if st.session_state.uploaded_df is None or st.button("🔄 Reload File"):
-            with st.spinner("Loading claims..."):
-                if uploaded_file.name.endswith(".parquet"):
-                    st.session_state.uploaded_df = pl.read_parquet(uploaded_file)
-                else:
-                    st.session_state.uploaded_df = pl.read_csv(uploaded_file)
-
+    # Show loaded data (from session state)
+    if st.session_state.uploaded_df is not None:
         df = st.session_state.uploaded_df
-        if df is not None:
-            st.info(f"Loaded {len(df)} claims")
+        
+        # Show file info
+        st.info(f"📄 Current file: **{st.session_state.uploaded_filename or 'Unknown'}** | {len(df)} records")
+        
+        with st.expander("Preview data (first 10 rows)", expanded=False):
+            st.dataframe(df.head(10))
 
-            # Validate button
-            if st.button("🔍 Validate Claims", type="primary"):
-                with st.spinner("Validating..."):
-                    # Import and run validation
-                    from priqualis.etl.schemas import ClaimBatch, ClaimRecord
-                    from priqualis.rules import RuleEngine
-
-                    # Convert to records
-                    records = []
-                    for row in df.iter_rows(named=True):
-                        try:
-                            records.append(ClaimRecord(**row))
-                        except Exception:
-                            pass
-
-                    batch = ClaimBatch(records=records)
-
-                    # Validate
-                    engine = RuleEngine(Path("config/rules"))
-                    report = engine.validate(batch)
-
-                    # Store in session state
-                    st.session_state.validation_result = report
-
-                    # Add to history
-                    import time
-                    st.session_state.validation_history.append({
-                        "batch_id": f"batch_{int(time.time())}",
-                        "total": report.total_records,
-                        "violations": report.violation_count,
-                        "pass_rate": report.pass_rate,
-                    })
-
-            # Show results (persisted in session state)
+        # Validate button
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            validate_clicked = st.button("🚀 Validate", type="primary", key="btn_validate")
+        with col2:
             if st.session_state.validation_result:
-                report = st.session_state.validation_result
+                st.success(f"✅ Last validation: {st.session_state.validation_result.violation_count} violations")
+        
+        if validate_clicked:
+            with st.spinner("Validating..."):
+                from priqualis.etl.schemas import ClaimBatch, ClaimRecord
 
-                st.divider()
-                st.subheader("📊 Validation Results")
+                # Convert to records
+                records = []
+                for row in df.iter_rows(named=True):
+                    try:
+                        records.append(ClaimRecord(**row))
+                    except Exception:
+                        pass
 
-                # Summary metrics
-                col1, col2, col3, col4 = st.columns(4)
-                col1.metric("Total", report.total_records)
-                col2.metric("Violations", report.violation_count, delta_color="inverse")
-                col3.metric("Warnings", report.warning_count)
-                col4.metric("Pass Rate", f"{report.pass_rate:.1%}")
+                batch = ClaimBatch(records=records)
+                report = engine.validate(batch)
 
-                # Issues by rule (violations + warnings)
-                st.subheader("Issues by Rule (Errors + Warnings)")
-                from collections import Counter
-                
-                # Combine violations and warnings
-                all_issues = list(report.violations) + list(report.warnings)
-                rule_counts = Counter(r.rule_id for r in all_issues)
-                
-                if rule_counts:
-                    import pandas as pd
-                    rule_df = pd.DataFrame([
-                        {"Rule": rule, "Count": count}
-                        for rule, count in sorted(rule_counts.items())
-                    ])
-                    st.bar_chart(rule_df.set_index("Rule"))
+                # Store in session state
+                st.session_state.validation_result = report
 
-                # =========================================================
-                # AutoFix Section
-                # =========================================================
-                st.divider()
-                st.subheader("🔧 AutoFix")
-                
-                # Check which rules have autofix
-                rules_with_autofix = [r for r in engine.rules if r.on_violation and r.on_violation.autofix_hint]
-                fixable_violations = [v for v in report.violations if v.rule_id in {r.rule_id for r in rules_with_autofix}]
-                
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Violations with AutoFix", len(fixable_violations))
-                col2.metric("AutoFix Coverage", f"{len(fixable_violations) / len(report.violations) * 100:.0f}%" if report.violations else "N/A")
-                col3.metric("Rules with AutoFix", f"{len(rules_with_autofix)}/{len(engine.rules)}")
-                
-                if fixable_violations:
-                    if st.button("🔧 Generate All Patches", type="primary"):
-                        from priqualis.autofix import PatchGenerator
-                        generator = PatchGenerator()
-                        
-                        with st.spinner(f"Generating patches for {len(fixable_violations)} violations..."):
-                            patches = generator.generate_batch(fixable_violations, engine.rules)
-                            st.session_state.generated_patches = patches
-                        
-                        st.success(f"✅ Generated {len(patches)} patches!")
-                
-                # Show generated patches
-                if st.session_state.get("generated_patches"):
-                    patches = st.session_state.generated_patches
-                    st.markdown(f"**{len(patches)} patches ready**")
+                # Add to history
+                import time
+                st.session_state.validation_history.append({
+                    "batch_id": f"batch_{int(time.time())}",
+                    "total": report.total_records,
+                    "violations": report.violation_count,
+                    "pass_rate": report.pass_rate,
+                })
+            
+            st.rerun()  # Refresh to show results
+
+        # =====================================================================
+        # VALIDATION RESULTS - Show if validation was done
+        # =====================================================================
+        if st.session_state.validation_result:
+            report = st.session_state.validation_result
+
+            st.divider()
+            st.subheader("📊 Validation Results")
+
+            # Summary metrics
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Total", report.total_records)
+            col2.metric("Violations", report.violation_count, delta_color="inverse")
+            col3.metric("Warnings", report.warning_count)
+            col4.metric("Pass Rate", f"{report.pass_rate:.1%}")
+
+            # Issues by rule (violations + warnings)
+            st.subheader("Issues by Rule")
+            from collections import Counter
+            
+            all_issues = list(report.violations) + list(report.warnings)
+            rule_counts = Counter(r.rule_id for r in all_issues)
+            
+            if rule_counts:
+                import pandas as pd
+                rule_df = pd.DataFrame([
+                    {"Rule": rule, "Count": count}
+                    for rule, count in sorted(rule_counts.items())
+                ])
+                st.bar_chart(rule_df.set_index("Rule"))
+
+            # =================================================================
+            # AutoFix Section
+            # =================================================================
+            st.divider()
+            st.subheader("🔧 AutoFix")
+            
+            rules_with_autofix = [r for r in engine.rules if r.on_violation and r.on_violation.autofix_hint]
+            fixable_violations = [v for v in report.violations if v.rule_id in {r.rule_id for r in rules_with_autofix}]
+            
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Fixable Violations", len(fixable_violations))
+            col2.metric("AutoFix Coverage", f"{len(fixable_violations) / len(report.violations) * 100:.0f}%" if report.violations else "N/A")
+            col3.metric("Rules with AutoFix", f"{len(rules_with_autofix)}/{len(engine.rules)}")
+            
+            # Generate patches button
+            if fixable_violations and not st.session_state.generated_patches:
+                if st.button("🔧 Generate All Patches", type="primary", key="btn_generate"):
+                    from priqualis.autofix import PatchGenerator
+                    patch_gen = PatchGenerator()
                     
-                    with st.expander("📋 View Patches (YAML)"):
-                        import yaml
-                        for patch in patches[:5]:  # Show first 5
-                            st.code(yaml.dump(patch.model_dump(), default_flow_style=False), language="yaml")
-                        if len(patches) > 5:
-                            st.caption(f"... and {len(patches) - 5} more")
+                    with st.spinner(f"Generating patches for {len(fixable_violations)} violations..."):
+                        records_dict = {row["case_id"]: row for row in df.to_dicts()}
+                        patches = patch_gen.generate_batch(fixable_violations, records_dict)
+                        st.session_state.generated_patches = patches
                     
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("👁️ Preview (Dry-Run)"):
-                            st.info("Dry-run mode - changes not applied")
-                            st.json({"status": "preview", "patches": len(patches)})
-                    with col2:
-                        if st.button("✅ Apply All", type="primary"):
-                            from priqualis.autofix import PatchApplier
-                            applier = PatchApplier()
-                            
-                            # Convert polars to dicts
-                            claims_dict = st.session_state.uploaded_df.to_dicts()
-                            
-                            with st.spinner(f"Applying {len(patches)} patches..."):
-                                apply_result = applier.apply_batch(claims_dict, patches, mode="commit")
-                                
-                            # Convert back to polars
-                            import polars as pl
-                            fixed_df = pl.from_dicts(claims_dict)
-                            st.session_state.uploaded_df = fixed_df
-                            st.session_state.validation_result = None # Clear result as data changed
-                            
-                            st.success(f"✅ Applied {len(patches)} patches! Data updated.")
-                            st.session_state.generated_patches = None
-                            
-                            # Download corrected file
-                            csv_data = fixed_df.write_csv()
-                            st.download_button(
-                                "📥 Download Corrected File (CSV)",
-                                data=csv_data,
-                                file_name="priqualis_corrected_batch.csv",
-                                mime="text/csv",
-                                type="secondary"
-                            )
-
-                # =========================================================
-                # Export Section
-                # =========================================================
-                st.divider()
-                st.subheader("📄 Export Report")
+                    st.rerun()
+            
+            # Show patches if generated
+            if st.session_state.generated_patches:
+                patches = st.session_state.generated_patches
                 
-                from priqualis.reports import ReportGenerator
-                generator = ReportGenerator()
+                st.success(f"📦 **{len(patches)} patches ready**")
                 
+                with st.expander("📋 View Patches (YAML)", expanded=False):
+                    import yaml
+                    for i, patch in enumerate(patches[:5], 1):
+                        st.markdown(f"**{i}. Case `{patch.case_id}` → Rule `{patch.rule_id}`**")
+                        st.code(yaml.dump(patch.model_dump(), default_flow_style=False, allow_unicode=True), language="yaml")
+                    if len(patches) > 5:
+                        st.caption(f"... and {len(patches) - 5} more")
+                
+                # Action buttons
                 col1, col2, col3 = st.columns(3)
+                
                 with col1:
-                    # Markdown export
-                    md_report = generator.generate_markdown(report)
-                    st.download_button(
-                        "📝 Download Markdown",
-                        data=md_report,
-                        file_name="priqualis_report.md",
-                        mime="text/markdown",
-                    )
+                    if st.button("👁️ Preview", key="btn_preview"):
+                        st.dataframe([{
+                            "Case": p.case_id,
+                            "Rule": p.rule_id,
+                            "Changes": len(p.changes),
+                            "Confidence": f"{p.confidence:.0%}"
+                        } for p in patches[:20]])
                 
                 with col2:
-                    # JSON export
-                    import json
-                    json_data = generator.generate_json(report)
-                    json_report = json.dumps(json_data, indent=2, ensure_ascii=False)
-                    st.download_button(
-                        "📊 Download JSON",
-                        data=json_report,
-                        file_name="priqualis_report.json",
-                        mime="application/json",
-                    )
+                    if st.button("✅ Apply All", type="primary", key="btn_apply"):
+                        from priqualis.autofix import PatchApplier
+                        applier = PatchApplier()
+                        
+                        records_dict = {row["case_id"]: row for row in df.to_dicts()}
+                        
+                        with st.spinner(f"Applying {len(patches)} patches..."):
+                            result = applier.apply_batch(patches, records_dict, mode="commit")
+                        
+                        import polars as pl
+                        fixed_df = pl.from_dicts(list(result.values()))
+                        st.session_state.uploaded_df = fixed_df
+                        st.session_state.generated_patches = None
+                        # DON'T reset validation_result - keep it for reference
+                        
+                        st.success(f"✅ Applied {len(patches)} patches!")
+                        st.balloons()
+                        
+                        # Download button
+                        st.download_button(
+                            "📥 Download Corrected CSV",
+                            data=fixed_df.write_csv(),
+                            file_name="corrected_claims.csv",
+                            mime="text/csv",
+                            key="btn_download_csv"
+                        )
                 
                 with col3:
-                    try:
-                        import weasyprint
-                        import markdown
-                        # Temporary file for PDF
-                        from tempfile import NamedTemporaryFile
-                        with NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-                            generator.generate_pdf(report, Path(tmp.name))
-                            with open(tmp.name, "rb") as f:
-                                pdf_data = f.read()
-                        
-                        st.download_button(
-                            "📕 Download PDF",
-                            data=pdf_data,
-                            file_name="priqualis_report.pdf",
-                            mime="application/pdf",
-                        )
-                    except ImportError:
-                        st.info("💡 PDF export requires `weasyprint` and `markdown` libraries.")
+                    if st.button("🗑️ Clear Patches", key="btn_clear"):
+                        st.session_state.generated_patches = None
+                        st.rerun()
 
-                # =========================================================
-                # LLM Rule Explanations
-                # =========================================================
-                st.divider()
-                st.subheader("🤖 Rule Explanations (AI)")
+            # =================================================================
+            # Export Section
+            # =================================================================
+            st.divider()
+            st.subheader("📄 Export Report")
+            
+            from priqualis.reports import ReportGenerator
+            report_gen = ReportGenerator()
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                md_report = report_gen.generate_markdown(report)
+                st.download_button(
+                    "📝 Markdown",
+                    data=md_report,
+                    file_name="priqualis_report.md",
+                    mime="text/markdown",
+                    key="btn_export_md"
+                )
+            
+            with col2:
+                import json
+                json_data = report_gen.generate_json(report)
+                st.download_button(
+                    "📊 JSON",
+                    data=json.dumps(json_data, indent=2, ensure_ascii=False),
+                    file_name="priqualis_report.json",
+                    mime="application/json",
+                    key="btn_export_json"
+                )
+            
+            with col3:
+                st.info("PDF requires weasyprint")
+
+            # =================================================================
+            # LLM Explanations
+            # =================================================================
+            st.divider()
+            st.subheader("🤖 Rule Explanations")
+            
+            if report.violations:
+                rule_ids = sorted(list(set(v.rule_id for v in report.violations)))
+                selected_rule = st.selectbox("Select rule to explain:", rule_ids, key="select_rule")
                 
-                if report.violations:
-                    selected_rule_id = st.selectbox(
-                        "Select a rule to get an AI explanation with NFZ context:",
-                        options=sorted(list(set(v.rule_id for v in report.violations)))
-                    )
+                if st.button("🤖 Explain", key="btn_explain"):
+                    from priqualis.llm import ViolationExplainer
+                    explainer = ViolationExplainer()
                     
-                    if st.button("🤖 Explain Rule", type="primary"):
-                        from priqualis.llm import ViolationExplainer
-                        explainer = ViolationExplainer()
-                        
-                        # Find a sample violation for this rule
-                        sample_v = next(v for v in report.violations if v.rule_id == selected_rule_id)
-                        rule_name = next((r.name for r in engine.rules if r.rule_id == selected_rule_id), selected_rule_id)
-                        
-                        with st.spinner("Consulting rule base..."):
-                            explanation = explainer.explain(sample_v, rule_name)
-                            
-                        st.info(explanation.text)
-                        if explanation.citations:
-                            with st.expander("📚 Sources & Citations"):
-                                for cite in explanation.citations:
-                                    st.markdown(f"- {cite}")
+                    sample = next(v for v in report.violations if v.rule_id == selected_rule)
+                    rule_name = next((r.name for r in engine.rules if r.rule_id == selected_rule), selected_rule)
+                    
+                    with st.spinner("Generating explanation..."):
+                        explanation = explainer.explain(sample, rule_name)
+                    
+                    st.info(explanation.text)
+                    if explanation.citations:
+                        with st.expander("📚 Citations"):
+                            for cite in explanation.citations:
+                                st.markdown(f"- {cite}")
 
-                # Results table
-                st.divider()
-                st.subheader("❌ Violations Detail")
-                violations_data = [
-                    {
-                        "Rule": r.rule_id,
-                        "Case": r.case_id,
-                        "Message": r.message[:50] + "..." if r.message and len(r.message) > 50 else r.message,
-                        "AutoFix": "✅" if r.rule_id in {rr.rule_id for rr in rules_with_autofix} else "❌",
-                    }
-                    for r in report.violations[:100]
-                ]
-
-                if violations_data:
-                    st.dataframe(violations_data, use_container_width=True)
-                else:
-                    st.success("No violations found!")
+            # =================================================================
+            # Violations Detail
+            # =================================================================
+            st.divider()
+            st.subheader("❌ Violations Detail")
+            
+            violations_data = [
+                {
+                    "Rule": v.rule_id,
+                    "Case": v.case_id,
+                    "Message": (v.message[:50] + "...") if v.message and len(v.message) > 50 else v.message,
+                }
+                for v in report.violations[:100]
+            ]
+            
+            if violations_data:
+                st.dataframe(violations_data)
+            else:
+                st.success("🎉 No violations found!")
 
     else:
         st.info("👆 Upload a CSV or Parquet file to start validation.")
-
-        # Show last result if available
-        if st.session_state.validation_result:
-            st.warning("Previous validation results still available below.")
-            report = st.session_state.validation_result
-            st.metric("Last validation", f"{report.total_records} claims, {report.violation_count} violations")
 
 # =============================================================================
 # Similar Cases Page
@@ -451,7 +472,7 @@ elif page == "🔍 Similar Cases":
                         selected_case = row
                         
                         with st.expander("📄 Selected Case Details"):
-                            st.json({k: v for k, v in row.items() if v is not None}[:10])
+                            st.json({k: v for k, v in row.items() if v is not None})
         else:
             st.warning("No violations available. Upload and validate a file in Triage first.")
 
@@ -660,11 +681,18 @@ elif page == "📊 KPIs":
 
     # Generate trend based on date range
     days = (end_date - start_date).days
+    if days <= 0:
+        days = 30  # Default to 30 days if range is invalid
+    
     trend_data = pd.DataFrame({
-        "Day": range(1, days + 1),
-        "FPA": np.clip(np.random.normal(fpa_rate, 0.01, days), 0.9, 1.0),
+        "Day": list(range(1, days + 1)),
+        "FPA": list(np.clip(np.random.normal(fpa_rate, 0.01, days), 0.9, 1.0)),
     })
-    st.line_chart(trend_data.set_index("Day"))
+    
+    if not trend_data.empty and len(trend_data) > 0:
+        st.line_chart(trend_data.set_index("Day"))
+    else:
+        st.info("No trend data available for selected period.")
 
     # =========================================================
     # Anomaly Alerts
@@ -719,7 +747,9 @@ elif page == "📊 KPIs":
                 # Simple chart for the specific rule
                 hist = detector.get_history(alert.rule_id)
                 if hist:
-                    st.line_chart(pd.DataFrame({"Violation Count": hist + [alert.current_value]}))
+                    chart_data = hist + [alert.current_value]
+                    if len(chart_data) > 0:
+                        st.line_chart(pd.DataFrame({"Violation Count": chart_data}))
 
 # =============================================================================
 # Settings Page

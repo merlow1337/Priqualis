@@ -137,7 +137,7 @@ class ReportGenerator:
                     f"### Case: `{v.case_id}`",
                     f"- **Rule:** `{v.rule_id}`",
                     f"- **Message:** {v.message or 'N/A'}",
-                    f"- **Severity:** {v.severity or 'error'}",
+                    f"- **State:** `{v.state}`",
                     "",
                 ])
             
@@ -200,7 +200,7 @@ class ReportGenerator:
                     "case_id": v.case_id,
                     "rule_id": v.rule_id,
                     "message": v.message,
-                    "severity": v.severity,
+                    "state": v.state if isinstance(v.state, str) else v.state.value if hasattr(v.state, 'value') else str(v.state),
                 }
                 for v in report.violations[:self.config.max_violations_shown]
             ],
@@ -305,7 +305,7 @@ class ReportGenerator:
     </style>
 </head>
 <body>
-{html_body}
+{{html_body}}
 </body>
 </html>
 """

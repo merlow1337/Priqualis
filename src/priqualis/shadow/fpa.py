@@ -106,20 +106,52 @@ class RejectionImporter:
         Expected columns: case_id, rejection_date, error_code, error_message
         """
         df = pl.read_csv(path)
+        return self.import_from_df(df)
+
+    def import_from_df(self, df: pl.DataFrame) -> list[RejectionRecord]:
+        """
+        Import rejections from Polars DataFrame.
+
+        Expected columns: case_id, rejection_date, error_code, error_message
+
+        Args:
+            df: Polars DataFrame with rejection data
+
+        Returns:
+            List of RejectionRecord objects
+        """
+        from datetime import datetime as dt
 
         records = []
         for row in df.iter_rows(named=True):
-            record = RejectionRecord(
-                case_id=row["case_id"],
-                rejection_date=row["rejection_date"],
-                error_code=row["error_code"],
-                error_message=row.get("error_message", ""),
-                rule_id=self.error_mapping.get(row["error_code"]),
-                batch_id=row.get("batch_id"),
-            )
-            records.append(record)
+            try:
+                # Handle date parsing - może być string lub date
+                rejection_date = row.get("rejection_date")
+                if isinstance(rejection_date, str):
+                    # Try multiple date formats
+                    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
+                        try:
+                            rejection_date = dt.strptime(rejection_date, fmt).date()
+                            break
+                        except ValueError:
+                            continue
+                elif rejection_date is None:
+                    rejection_date = date.today()
 
-        logger.info("Imported %d rejection records from %s", len(records), path)
+                record = RejectionRecord(
+                    case_id=str(row["case_id"]),
+                    rejection_date=rejection_date,
+                    error_code=str(row.get("error_code", "UNKNOWN")),
+                    error_message=str(row.get("error_message", "")),
+                    rule_id=self.error_mapping.get(str(row.get("error_code", ""))),
+                    batch_id=str(row.get("batch_id")) if row.get("batch_id") else None,
+                )
+                records.append(record)
+            except Exception as e:
+                logger.warning("Failed to parse rejection row: %s - %s", row, e)
+                continue
+
+        logger.info("Imported %d rejection records from DataFrame", len(records))
         return records
 
 

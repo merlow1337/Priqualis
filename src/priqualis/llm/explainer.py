@@ -64,7 +64,8 @@ ZASADY:
 - Wyjaśniaj TYLKO symboliczne wyniki - NIE podejmuj decyzji
 - Cytuj źródła (podaj ID reguły i dokument)
 - Używaj prostego języka zrozumiałego dla pracownika rozliczeń
-- Odpowiedź max 3-4 zdania
+- Odpowiedź max 3-4 zdania po polsku
+- Dodaj również tłumaczenie wyjaśnienia na język angielski (w nowej linii, po '🇬🇧 English:')
 
 KONTEKST Z BAZY REGUŁ:
 {rag_context}
@@ -86,6 +87,7 @@ RULES:
 - Cite sources (provide rule ID and document)
 - Use simple language understandable by billing staff
 - Response max 3-4 sentences
+- Include Polish translation as well (after '🇵🇱 Polish:')
 
 CONTEXT FROM RULE BASE:
 {rag_context}
@@ -230,21 +232,45 @@ class ViolationExplainer:
         """Generate mock explanation when no LLM available."""
         
         rule_explanations = {
-            "R001": "Świadczenie wymaga rozpoznania głównego w kodzie ICD-10. Dodaj prawidłowy kod rozpoznania głównego zgodny z dokumentacją medyczną.",
-            "R002": "Data wypisu musi być równa lub późniejsza niż data przyjęcia. Skoryguj daty hospitalizacji w systemie HIS.",
-            "R003": "Każde świadczenie szpitalne wymaga przypisania grupy JGP. Uruchom grupera lub przypisz grupę ręcznie.",
-            "R004": "Świadczenie powinno zawierać co najmniej jedną procedurę medyczną. Uzupełnij procedury zgodnie z dokumentacją.",
-            "R005": "Tryb przyjęcia musi być określony jako: nagły, planowy lub przeniesienie. Wybierz prawidłową wartość.",
-            "R006": "Kod oddziału jest wymagany do rozliczenia. Uzupełnij kod zgodny z rejestrem NFZ.",
-            "R007": "Wartość taryfy musi być większa od zera. Sprawdź przypisanie grupy JGP i taryfy.",
+            "R001": (
+                "Świadczenie wymaga rozpoznania głównego w kodzie ICD-10. Dodaj prawidłowy kod rozpoznania głównego zgodny z dokumentacją medyczną.",
+                "Service requires a main diagnosis code in ICD-10 format. Add a valid main diagnosis code consistent with medical documentation."
+            ),
+            "R002": (
+                "Data wypisu musi być równa lub późniejsza niż data przyjęcia. Skoryguj daty hospitalizacji w systemie HIS.",
+                "Discharge date must be equal to or later than admission date. Correct the hospitalization dates in the HIS system."
+            ),
+            "R003": (
+                "Każde świadczenie szpitalne wymaga przypisania grupy JGP. Uruchom grupera lub przypisz grupę ręcznie.",
+                "Every hospital service requires a JGP group assignment. Run the grouper or assign the group manually."
+            ),
+            "R004": (
+                "Świadczenie powinno zawierać co najmniej jedną procedurę medyczną. Uzupełnij procedury zgodnie z dokumentacją.",
+                "The service should contain at least one medical procedure. Complete procedures according to documentation."
+            ),
+            "R005": (
+                "Tryb przyjęcia musi być określony jako: nagły, planowy lub przeniesienie. Wybierz prawidłową wartość.",
+                "Admission mode must be specified as: emergency, scheduled, or transfer. Select the correct value."
+            ),
+            "R006": (
+                "Kod oddziału jest wymagany do rozliczenia. Uzupełnij kod zgodny z rejestrem NFZ.",
+                "Department code is required for billing. Complete the code according to the NFZ registry."
+            ),
+            "R007": (
+                "Wartość taryfy musi być większa od zera. Sprawdź przypisanie grupy JGP i taryfy.",
+                "Tariff value must be greater than zero. Check JGP group assignment and tariff."
+            ),
         }
 
-        base_text = rule_explanations.get(
+        pl_text, en_text = rule_explanations.get(
             violation.rule_id,
-            f"Reguła {violation.rule_id} nie została spełniona. {violation.message or ''}"
+            (
+                f"Reguła {violation.rule_id} nie została spełniona. {violation.message or ''}",
+                f"Rule {violation.rule_id} was not satisfied. {violation.message or ''}"
+            )
         )
 
-        return f"{base_text} [Źródło: NFZ CWV v2024, reguła {violation.rule_id}]"
+        return f"{pl_text}\n\n🇬🇧 **English:** {en_text}\n\n[Źródło: NFZ CWV v2024, reguła {violation.rule_id}]"
 
     def _extract_citations(self, context: str) -> list[str]:
         """Extract source citations from context."""
