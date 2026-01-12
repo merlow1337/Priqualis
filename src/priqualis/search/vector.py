@@ -6,7 +6,7 @@ Qdrant-based vector storage for semantic search.
 
 import logging
 from functools import lru_cache
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -61,7 +61,7 @@ class EmbeddingService:
         self._cache: dict[str, np.ndarray] = {}
 
     @property
-    def model(self):
+    def model(self) -> Any:
         """Lazy load model."""
         if self._model is None:
             from sentence_transformers import SentenceTransformer
@@ -111,7 +111,7 @@ class EmbeddingService:
             show_progress_bar=len(texts) > 100,
         )
 
-    def claim_to_text(self, claim: dict) -> str:
+    def claim_to_text(self, claim: dict[str, Any]) -> str:
         """
         Convert claim to searchable text representation.
 
@@ -237,7 +237,7 @@ class VectorStore:
         )
         logger.info("Created collection '%s' with %d dimensions", self.collection, vector_size)
 
-    def upsert(self, case_id: str, vector: np.ndarray, payload: dict) -> None:
+    def upsert(self, case_id: str, vector: np.ndarray, payload: dict[str, Any]) -> None:
         """
         Insert or update single vector.
 
@@ -297,8 +297,8 @@ class VectorStore:
         self,
         vector: np.ndarray,
         top_k: int = 50,
-        filters: dict | None = None,
-    ) -> list[tuple[str, float, dict]]:
+        filters: dict[str, Any] | None = None,
+    ) -> list[tuple[str, float, dict[str, Any]]]:
         """
         ANN search with optional payload filters.
 

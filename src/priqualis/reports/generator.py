@@ -8,7 +8,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from priqualis.rules.models import ValidationReport
 
@@ -170,7 +170,7 @@ class ReportGenerator:
         self,
         report: ValidationReport,
         batch_id: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Generate JSON report.
 

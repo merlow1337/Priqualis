@@ -244,7 +244,7 @@ class PIIMasker:
 
         return text
 
-    def mask_dict(self, record: dict) -> tuple[dict, int]:
+    def mask_dict(self, record: dict[str, Any]) -> tuple[dict[str, Any], int]:
         """
         Mask PII in a dictionary record.
 

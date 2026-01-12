@@ -58,7 +58,7 @@ class SearchQuery:
     filters: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_claim(cls, claim: dict) -> "SearchQuery":
+    def from_claim(cls, claim: dict[str, Any]) -> "SearchQuery":
         """Create query from claim record."""
         # Build searchable text
         parts = []

@@ -5,7 +5,7 @@ Optional cross-encoder reranking for top-N refinement.
 """
 
 import logging
-from typing import Protocol
+from typing import Any, Protocol
 
 from priqualis.search.models import SearchResult
 
@@ -113,7 +113,7 @@ class Reranker:
         logger.debug("Reranked %d candidates → top %d", len(candidates), len(results))
         return results
 
-    def _claim_to_text(self, claim: dict) -> str:
+    def _claim_to_text(self, claim: dict[str, Any]) -> str:
         """Convert claim to text for reranking."""
         parts = []
 

@@ -13,6 +13,7 @@ This module:
 import logging
 from dataclasses import dataclass, field
 from datetime import date
+from typing import Any
 from pathlib import Path
 
 import polars as pl
@@ -317,7 +318,7 @@ class FPATracker:
         )
 
     @property
-    def summary(self) -> dict:
+    def summary(self) -> dict[str, Any]:
         """Get quick summary stats."""
         return {
             "total_submissions": len(self._submissions),

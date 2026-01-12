@@ -6,7 +6,7 @@ Calculates impact scores for violations to prioritize fixes.
 
 import logging
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from priqualis.rules.models import RuleResult
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class ImpactCalculator(Protocol):
     """Protocol for impact score calculation."""
 
-    def calculate(self, result: RuleResult, record: dict) -> float:
+    def calculate(self, result: RuleResult, record: dict[str, Any]) -> float:
         """Calculate impact score for a violation."""
         ...
 
@@ -78,7 +78,7 @@ class ImpactScorer:
         """
         self.weights = weights or DEFAULT_WEIGHTS
 
-    def calculate(self, result: RuleResult, record: dict) -> float:
+    def calculate(self, result: RuleResult, record: dict[str, Any]) -> float:
         """
         Calculate impact score for a violation.
 

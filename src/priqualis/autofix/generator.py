@@ -71,7 +71,7 @@ class Patch(BaseModel):
         """Check if patch is safe to auto-apply (confidence > 0.8)."""
         return self.confidence >= 0.8
 
-    def to_yaml_dict(self) -> dict:
+    def to_yaml_dict(self) -> dict[str, Any]:
         """Export as YAML-friendly dict."""
         return {
             "case_id": self.case_id,

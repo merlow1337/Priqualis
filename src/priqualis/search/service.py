@@ -5,6 +5,7 @@ High-level service for finding similar approved cases.
 """
 
 import logging
+from typing import Any
 
 from priqualis.search.bm25 import BM25Index
 from priqualis.search.hybrid import HybridSearch
@@ -221,9 +222,9 @@ class ClaimIndexer:
 
     def index_claims(
         self,
-        claims: list[dict],
-        show_progress: bool = True,
-    ) -> dict:
+        claims: list[dict[str, Any]],
+        _show_progress: bool = True,  # Reserved for future progress bar
+    ) -> dict[str, Any]:
         """
         Index batch of approved claims.
 

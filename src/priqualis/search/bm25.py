@@ -136,7 +136,8 @@ class BM25Index:
         # Tokenize query
         query_tokens = bm25s.tokenize([query], stopwords=None)
 
-        # Search
+        # Search (index is guaranteed to be not None after is_built check)
+        assert self.index is not None
         results, scores = self.index.retrieve(query_tokens, k=min(top_k, len(self.corpus_ids)))
 
         # Convert to (case_id, score) pairs
@@ -160,6 +161,7 @@ class BM25Index:
         path.mkdir(parents=True, exist_ok=True)
 
         # Save bm25s index
+        assert self.index is not None  # guaranteed by is_built check
         self.index.save(str(path / "bm25_index"))
 
         # Save corpus IDs

@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -62,9 +63,9 @@ class PatchApplier:
     def apply(
         self,
         patch: Patch,
-        record: dict,
+        record: dict[str, Any],
         mode: ApplyMode | str = ApplyMode.DRY_RUN,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Apply patch to a record.
 
@@ -200,6 +201,9 @@ class PatchApplier:
 
     def _save_audit_entry(self, entry: AuditEntry) -> None:
         """Save audit entry to file."""
+        if self.audit_dir is None:
+            return  # No audit directory configured
+        
         self.audit_dir.mkdir(parents=True, exist_ok=True)
 
         # Create filename with timestamp
@@ -330,9 +334,9 @@ class PatchApplier:
 
 def apply_patch(
     patch: Patch,
-    record: dict,
+    record: dict[str, Any],
     mode: str = "dry-run",
-) -> dict:
+) -> dict[str, Any]:
     """
     Convenience function to apply a single patch.
 

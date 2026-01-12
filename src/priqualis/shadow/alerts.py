@@ -8,7 +8,7 @@ Uses Z-score based detection on historical rule violation counts.
 import logging
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -267,7 +267,7 @@ class AnomalyDetector:
         """Get historical counts for a rule."""
         return self._history.get(rule_id, [])
 
-    def get_statistics(self, rule_id: str) -> dict:
+    def get_statistics(self, rule_id: str) -> dict[str, Any]:
         """Get statistical summary for a rule."""
         historical = self._history.get(rule_id, [])
         
@@ -357,7 +357,7 @@ class AlertManager:
         return cleared
 
     @property
-    def summary(self) -> dict:
+    def summary(self) -> dict[str, int]:
         """Get alert summary."""
         return {
             "total": len(self._alerts),

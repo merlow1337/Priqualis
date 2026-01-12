@@ -7,6 +7,7 @@ Pydantic models for rule definitions and execution results.
 import logging
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -217,7 +218,7 @@ class ValidationReport(BaseModel):
         """Get all violations for a specific case."""
         return [r for r in self.violations if r.case_id == case_id]
 
-    def summary(self) -> dict:
+    def summary(self) -> dict[str, Any]:
         """Generate summary statistics."""
         return {
             "total_records": self.total_records,

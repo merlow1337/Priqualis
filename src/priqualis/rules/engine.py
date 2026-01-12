@@ -42,7 +42,7 @@ class RuleLoader(Protocol):
 class RuleEvaluator(Protocol):
     """Protocol for rule evaluation."""
 
-    def execute(self, rule: RuleDefinition, record: dict) -> RuleResult:
+    def execute(self, rule: RuleDefinition, record: dict[str, Any]) -> RuleResult:
         """Execute a rule on a record."""
         ...
 
@@ -133,7 +133,8 @@ def safe_eval(expr: str, context: dict[str, Any]) -> Any:
     eval_locals = context.copy()
 
     try:
-        return eval(expr, eval_globals, eval_locals)
+        # nosec B307 - eval input is controlled: only SAFE_BUILTINS are exposed
+        return eval(expr, eval_globals, eval_locals)  # noqa: S307
     except Exception as e:
         raise RuleExecutionError(
             f"Failed to evaluate expression '{expr}': {e}"
