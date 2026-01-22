@@ -320,12 +320,12 @@ class VectorStore:
                 conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
             query_filter = Filter(must=conditions)
 
-        results = self.client.search(
+        results = self.client.query_points(
             collection_name=self.collection,
-            query_vector=vector.tolist(),
+            query=vector.tolist(),
             limit=top_k,
             query_filter=query_filter,
-        )
+        ).points
 
         return [
             (r.payload.get("case_id", "unknown"), r.score, r.payload)

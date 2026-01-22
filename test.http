@@ -1,0 +1,133 @@
+@baseUrl = http://localhost:8000
+@contentType = application/json
+
+###
+# 1. SYSTEM STATUS
+# Prüfen, ob die API läuft
+###
+
+# @name GetHealth
+GET {{baseUrl}}/health
+Accept: application/json
+
+###
+
+# @name GetRoot
+GET {{baseUrl}}/
+Accept: application/json
+
+###
+# 2. VALIDATION (Regelprüfung)
+# Hier testen wir die Regel-Engine und Validierungs-Endpunkte
+###
+
+# @name ListRules
+# Ruft alle verfügbaren Validierungsregeln ab (R001-R007)
+GET {{baseUrl}}/api/v1/validate/rules
+Accept: application/json
+
+###
+
+# @name ValidateBatch
+# Sendet einen Batch von Claims zur Validierung.
+# Enthält einen VALIDEN Fall (TEST_OK) und einen FEHLERHAFTEN Fall (TEST_FAIL).
+POST {{baseUrl}}/api/v1/validate
+Content-Type: {{contentType}}
+
+{
+  "claims": [
+    {
+      "case_id": "TEST_OK_001",
+      "patient_id": "PAT_001",
+      "pesel_masked": "PESEL_HASH123",
+      "birth_date": "1980-05-12",
+      "gender": "M",
+      "admission_date": "2024-01-10",
+      "discharge_date": "2024-01-15",
+      "admission_mode": "emergency",
+      "department_code": "4000",
+      "jgp_code": "A01",
+      "jgp_name": "Pneumonia",
+      "tariff_value": 3250.0,
+      "icd10_main": "J18.9",
+      "icd10_secondary": [],
+      "procedures": ["88.761"],
+      "status": "new"
+    },
+    {
+      "case_id": "TEST_FAIL_002",
+      "patient_id": "PAT_002",
+      "pesel_masked": "PESEL_INVALID",
+      "birth_date": "1990-01-01",
+      "gender": "F",
+      "admission_mode": "unknown", 
+      "status": "new",
+      "admission_date": "2024-02-01",
+      "discharge_date": "2024-01-31",
+      "department_code": null,
+      "jgp_code": null,
+      "icd10_main": null,
+      "tariff_value": 0.0,
+      "procedures": []
+    }
+  ]
+}
+
+###
+
+# @name ValidateFile
+# Lädt eine Datei hoch (CSV oder Parquet).
+# HINWEIS: Stelle sicher, dass die Datei existiert oder passe den Pfad an.
+# Die Syntax '<' liest die Datei lokal ein.
+POST {{baseUrl}}/api/v1/validate/file
+Accept: application/json
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="file"; filename="test_claims.csv"
+Content-Type: text/csv
+
+< ./data/fixtures/sample_claims.csv
+--boundary123--
+
+###
+# 3. SIMILARITY SEARCH (Ähnlichkeitssuche)
+# Findet ähnliche genehmigte Fälle basierend auf Codes (BM25 + Vektor)
+###
+
+# @name FindSimilar
+# Sucht nach ähnlichen Fällen für einen spezifischen Claim.
+POST {{baseUrl}}/api/v1/similar
+Content-Type: {{contentType}}
+
+{
+  "claim": {
+    "case_id": "QUERY_001",
+    "jgp_code": "A01",
+    "icd10_main": "J18.9",
+    "department_code": "4000",
+    "procedures": ["88.761"]
+  },
+  "top_k": 3,
+  "include_diffs": true
+}
+
+###
+
+# @name FindSimilarBatch
+# Batch-Suche für mehrere Claims gleichzeitig
+POST {{baseUrl}}/api/v1/similar/batch
+Content-Type: {{contentType}}
+
+[
+  {
+    "case_id": "QUERY_A",
+    "jgp_code": "B01",
+    "icd10_main": "I21.0"
+  },
+  {
+    "case_id": "QUERY_B",
+    "jgp_code": "D01",
+    "icd10_main": "M17.1"
+  }
+]

@@ -189,6 +189,16 @@ class ClaimRecord(BaseModel):
         except ValueError:
             # Return as string for validation rule to catch
             return v
+    
+    @field_validator("department_code", mode="before")
+    @classmethod
+    def coerce_to_string(cls, v: str | int | float | None) -> str | None:
+        """Coerce numeric codes (like 5200) to string."""
+        if v is None:
+            return None
+        if isinstance(v, float):
+            return str(int(v))
+        return str(v)
 
     @property
     def length_of_stay(self) -> int:
