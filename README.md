@@ -7,7 +7,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 
-Priqualis validates healthcare billing packages before submission to NFZ (Polish National Health Fund), reducing rejections and accelerating reimbursement. It combines rule-based validation with hybrid similarity search to surface similar approved cases and generate safe auto-fix suggestions.
+Priqualis validates healthcare billing packages before submission to NFZ (Polish National Health Fund), reducing rejections and speeds up reimbursement. It uses rule-based validation with hybrid similarity search to find similar approved cases and generate safe auto-fix suggestions.
 
 ---
 
@@ -22,7 +22,7 @@ Priqualis validates healthcare billing packages before submission to NFZ (Polish
 | **Batch Reports** | Export validation summaries to Markdown, PDF, or JSON |
 | **LLM Explain** | AI-generated explanations citing NFZ rule base (CWV/JGP) |
 | **Anomaly Alerts** | Z-score based detection when error-codes spike |
-| **PII Masking** | Deterministic hashing ensures joinable masked data without PII leaks |
+| **PII Masking** | Deterministic hashing keeps masked data joinable without PII leaks |
 
 ---
 
@@ -297,7 +297,7 @@ python scripts/benchmark_fpa_search.py
 
 **1. Slow validation (5+ minutes for 1500 records)**
 - Check if validation loop is correct (should be O(n), not O(n²))
-- Ensure `engine.validate()` is called ONCE after collecting all records
+- Make sure `engine.validate()` is called ONCE after collecting all records
 
 **2. `AttributeError: 'RejectionImporter' object has no attribute 'import_from_df'`**
 - Add `import_from_df()` method to `RejectionImporter` class in `fpa.py`

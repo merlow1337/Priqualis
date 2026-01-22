@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes import autofix, reports, similar, validate
+from priqualis.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +36,12 @@ async def lifespan(app: FastAPI):
 # =============================================================================
 
 
+_settings = get_settings()
+
 app = FastAPI(
-    title="Priqualis API",
+    title=_settings.api_title,
     description="Pre-submission compliance validator for healthcare claims",
-    version="0.1.0",
+    version=_settings.api_version,
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -52,7 +55,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict in production
+    allow_origins=_settings.cors_allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,8 +82,8 @@ app.include_router(reports.router, prefix="/api/v1", tags=["Reports"])
 async def root():
     """Root endpoint with API info."""
     return {
-        "name": "Priqualis API",
-        "version": "0.1.0",
+        "name": _settings.api_title,
+        "version": _settings.api_version,
         "docs": "/docs",
     }
 
@@ -90,7 +93,7 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "version": "0.1.0",
+        "version": _settings.api_version,
     }
 
 
@@ -104,7 +107,7 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "api.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
+        host=_settings.api_host,
+        port=_settings.api_port,
+        reload=_settings.is_development,
     )
