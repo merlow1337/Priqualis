@@ -8,7 +8,7 @@ import hashlib
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Callable, Protocol
+from typing import Callable, Protocol, Any
 
 import polars as pl
 
